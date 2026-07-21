@@ -1,0 +1,18 @@
+schema_version = "1.0.0"
+
+id = "render_alert"
+version = "2.6.2"
+name = "Render Alert"
+tagline = "Plays a sound/custom sound when rendering finishes"
+maintainer = "Jideeh"
+type = "add-on"
+
+tags = ["Render", "User Interface"]
+
+blender_version_min = "4.2.0"
+
+license = ["SPDX:GPL-3.0-or-later"]
+
+[permissions]
+files = "Read the selected custom sound file from disk"
+network = "Send a push notification to your phone when a render completes"

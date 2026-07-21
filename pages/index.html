@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      Proser Daily Census — Revenue &amp; Operations Dashboard (Local)
+    </title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPGRlZnM+CiAgICA8cmFkaWFsR3JhZGllbnQgaWQ9ImciIGN4PSIzNSUiIGN5PSIzMCUiIHI9IjgwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM2ZmEzZjciLz4KICAgICAgPHN0b3Agb2Zmc2V0PSI1MCUiIHN0b3AtY29sb3I9IiMyZjZmZTAiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMTIyODVlIi8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogIDwvZGVmcz4KICA8Y2lyY2xlIGN4PSIzMiIgY3k9IjMyIiByPSIzMCIgZmlsbD0idXJsKCNnKSIvPgogIDxwYXRoIGQ9Ik0xOCwzNiBMMjQsMjggTDMwLDM0IEwzOCwyMCBMNDYsMjgiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+"
+    />
+    <link rel="stylesheet" href="/pages/stylings/global.css" />
+  </head>
+  <body>
+    <div id="dragOverlay">
+      <div id="dragOverlayHint">📥 Drop your Daily Census file to import</div>
+    </div>
+    <div id="toast"></div>
+
+    <div id="loadingOverlay">
+      <div class="spinner" id="loadingSpinner"></div>
+      <div id="loadingText">Waiting for a Proser Daily Census file…</div>
+      <div id="loadingSteps"></div>
+      <div id="pickZone" class="button-con">
+        <button id="pickFileBtn">
+          📂 Select Daily Census file (.xlsx/.csv)
+        </button>
+        <div id="dropZoneHint">
+          or drag &amp; drop the file anywhere on this page
+        </div>
+      </div>
+      <input
+        type="file"
+        id="fileInput"
+        accept=".csv,.xlsx"
+        style="display: none"
+      />
+    </div>
+
+    <header>
+      <div>
+        <h1>Proser Daily Census — Revenue &amp; Operations Dashboard</h1>
+        <div class="sub">
+          Reads a local Proser Daily Census export (.xlsx/.csv) — parsed
+          entirely in your browser, nothing uploaded.
+        </div>
+        <div class="sub" id="siteLabel"></div>
+        <div class="sub" id="sourceLabel"></div>
+      </div>
+      <div class="header-actions">
+        <span id="lastRefreshed"></span>
+        <button id="changeFileBtn" class="file-btn">📂 Change file</button>
+        <button id="refreshBtn">⟳ Refresh</button>
+        <button id="clearCacheBtn" class="file-btn">
+          🗑 Remove cached file
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <div id="errorBox"></div>
+
+      <div class="filters" id="filterBar">
+        <div class="fgroup">
+          <label>Date From</label>
+          <input type="date" id="fDateFrom" />
+        </div>
+        <div class="fgroup">
+          <label>Date To</label>
+          <input type="date" id="fDateTo" />
+        </div>
+        <div class="fgroup">
+          <label>Payor</label>
+          <div class="msel" id="mselPayor">
+            <div class="msel-chips" id="mselPayorChips"></div>
+            <input
+              type="text"
+              id="fPayorInput"
+              placeholder="Type to search & select…"
+              autocomplete="off"
+            />
+            <div class="msel-dropdown" id="mselPayorDropdown"></div>
+          </div>
+        </div>
+        <div class="fgroup">
+          <label>Requesting Doctor</label>
+          <div class="msel" id="mselDoctor">
+            <div class="msel-chips" id="mselDoctorChips"></div>
+            <input
+              type="text"
+              id="fDoctorInput"
+              placeholder="Type to search & select…"
+              autocomplete="off"
+            />
+            <div class="msel-dropdown" id="mselDoctorDropdown"></div>
+          </div>
+        </div>
+        <div class="fgroup">
+          <label>SOA Status</label>
+          <select id="fSoa">
+            <option value="">All</option>
+            <option value="Active">Active only</option>
+            <option value="Cancelled">Cancelled only</option>
+          </select>
+        </div>
+        <div class="fgroup">
+          <label>Discount Type</label>
+          <select id="fDiscount">
+            <option value="">All</option>
+            <option value="none">No discount</option>
+            <option value="SENIOR CITIZEN DISCOUNT">Senior Citizen</option>
+            <option value="PWD DISCOUNT">PWD</option>
+            <option value="other">Other special discount</option>
+          </select>
+        </div>
+        <div class="fgroup">
+          <label>Item Name</label>
+          <div class="msel" id="mselItem">
+            <div class="msel-chips" id="mselItemChips"></div>
+            <input
+              type="text"
+              id="fItemInput"
+              placeholder="Type keywords & select…"
+              autocomplete="off"
+            />
+            <div class="msel-dropdown" id="mselItemDropdown"></div>
+          </div>
+        </div>
+        <div class="fgroup">
+          <label>Quick Filter</label>
+          <label
+            style="
+              flex-direction: row;
+              align-items: center;
+              gap: 6px;
+              font-weight: 400;
+              text-transform: none;
+              font-size: 13px;
+              color: var(--text);
+              display: flex;
+              height: max-content;
+            "
+          >
+            <input
+              type="checkbox"
+              id="fSeniorOnly"
+              style="min-width: auto; width: 16px; height: 16px"
+            />
+            <p id="seniors">Senior Citizens only</p>
+          </label>
+        </div>
+        <button id="applyFilters">Apply</button>
+        <button id="clearFilters">Clear</button>
+      </div>
+
+      <div class="kpi-row" id="kpiRow"></div>
+
+      <div class="grid3">
+        <div class="panel">
+          <h3>Top 10 Items by Revenue</h3>
+          <div class="desc">
+            Active line items, ranked by total billed amount
+          </div>
+          <canvas id="chartTopItems"></canvas>
+        </div>
+        <div class="panel">
+          <h3>Payor Mix (Revenue)</h3>
+          <div class="desc">Top 8 payors + Other, by billed amount</div>
+          <canvas id="chartPayorMix"></canvas>
+        </div>
+        <div class="panel">
+          <h3>Top 10 Requesting Doctors by Revenue</h3>
+          <div class="desc">Active line items attributed to each doctor</div>
+          <canvas id="chartDoctors"></canvas>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="panel">
+          <h3>Daily Revenue &amp; Visit Volume</h3>
+          <div class="desc">
+            Active line-item revenue per day vs. distinct visits
+          </div>
+          <canvas id="chartTrend"></canvas>
+        </div>
+        <div class="panel">
+          <h3>Discount Type Breakdown</h3>
+          <div class="desc">Total discount amount granted by type</div>
+          <canvas id="chartDiscounts"></canvas>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-bottom: 18px">
+        <h3>Performance by Payor</h3>
+        <div class="desc">
+          Click column headers to sort. Figures reflect active line items under
+          current filters.
+        </div>
+        <div class="tablewrap">
+          <table id="payorTable">
+            <thead>
+              <tr>
+                <th data-key="payor">Payor</th>
+                <th data-key="lineItems">Line Items</th>
+                <th data-key="visits">Visits</th>
+                <th data-key="revenue">Revenue</th>
+                <th data-key="avgTicket">Avg / Line Item</th>
+                <th data-key="discount">Discount Given</th>
+                <th data-key="discountPct">Discount %</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-bottom: 18px">
+        <h3>Quantity Breakdown by Item</h3>
+        <div class="desc">
+          Click column headers to sort. Qty and revenue reflect active line
+          items under current filters.
+        </div>
+        <div class="tablewrap">
+          <table id="itemTable">
+            <thead>
+              <tr>
+                <th data-key="itemName">Item</th>
+                <th data-key="qty">Qty</th>
+                <th data-key="lineItems">Line Items</th>
+                <th data-key="revenue">Revenue</th>
+                <th data-key="avgUnitPrice">Avg Unit Price</th>
+                <th data-key="qtyShare">% of Total Qty</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-bottom: 18px">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 10px;
+          "
+        >
+          <div>
+            <h3>Line-Item Detail</h3>
+            <div class="desc">
+              One row per billed item, reflecting the current filters above.
+              Click column headers to sort.
+            </div>
+          </div>
+          <button
+            id="exportCsvBtn"
+            style="
+              padding: 8px 14px;
+              border-radius: 6px;
+              border: 1px solid var(--border);
+              background: var(--blue);
+              color: #fff;
+              font-size: 13px;
+              font-weight: 600;
+              cursor: pointer;
+              white-space: nowrap;
+            "
+          >
+            Export CSV
+          </button>
+        </div>
+        <div
+          id="detailTableNote"
+          style="font-size: 11px; color: var(--muted); margin: 6px 0"
+        ></div>
+        <div class="tablewrap">
+          <table id="detailTable">
+            <thead>
+              <tr>
+                <th data-key="invoiceDate">Invoice Date</th>
+                <th data-key="invoiceNo">Invoice No</th>
+                <th data-key="patientName">Patient Name</th>
+                <th data-key="visitNo">Visit No</th>
+                <th data-key="itemName">Item</th>
+                <th data-key="payorName">Payor</th>
+                <th data-key="doctor">Doctor</th>
+                <th data-key="qty">Qty</th>
+                <th data-key="amount">Amount</th>
+                <th data-key="totalDiscount">Discount</th>
+                <th data-key="soaStatus">Status</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="footer-note">
+        Data parsed client-side from a local Proser Daily Census export —
+        nothing is uploaded anywhere. Revenue/discount/tax KPIs and charts
+        include Active line items only (Cancelled items are counted separately)
+        unless the SOA Status filter is changed.
+      </div>
+      <script src="/pages/scripts/global.js"></script>
+    </main>
+  </body>
+</html>
